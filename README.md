@@ -22,7 +22,7 @@ Ta Gra Przygodowa Tekstowa została zaimplementowana w języku C# przy użyciu i
 
 Kluczowe Składniki:
 
-Ruch Gracza: Gracz może poruszać się w czterech kierunkach (Północ, Południe, Wschód, Zachód) po planszy.
+Ruch Gracza: Gracz może poruszać się w trzech kierunkach (Północ, Południe, Wschód) po planszy.
 System Walki: Walki tur-based z losowymi starciami. Gracz może wybierać pomiędzy Atakiem, Obroną lub Ucieczką.
 System Doświadczenia: Gracze zdobywają punkty doświadczenia, pokonując potwory.
 Interakcje z NPC: Spotkania z przyjaznymi NPC, którzy mogą dostarczyć przedmiotów, takich jak miecze czy tarcze.
