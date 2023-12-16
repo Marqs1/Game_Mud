@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Numerics;
 using System.Threading.Tasks;
 
 class Texts
@@ -17,27 +16,201 @@ class Texts
     public static string DefeatedMonster = "You defeated the monster and gained experience!";
 }
 
-class Weapon
+class Item
 {
     public string Name { get; set; }
-    public int Damage { get; set; }
 
-    public Weapon(string name, int damage)
+    public Item(string name)
     {
         Name = name;
+    }
+}
+
+class Sword : Item
+{
+    public int Damage { get; set; }
+
+    public Sword(string name, int damage) : base(name)
+    {
         Damage = damage;
     }
 }
 
-class Shield
+class Shield : Item
 {
-    public string Name { get; set; }
     public int Defense { get; set; }
 
-    public Shield(string name, int defense)
+    public Shield(string name, int defense) : base(name)
     {
-        Name = name;
         Defense = defense;
+    }
+}
+
+class Monster
+{
+    public int HP { get; set; }
+    public int Damage { get; set; }
+
+    public Monster(int hp, int damage)
+    {
+        HP = hp;
+        Damage = damage;
+    }
+
+    public virtual int Attack(Player player)
+    {
+        int damageDealt = player.TakeDamage(Damage);
+        return damageDealt;
+    }
+}
+
+class Goblin : Monster
+{
+    public Goblin() : base(50, 10)
+    {
+    }
+
+    public override int Attack(Player player)
+    {
+        int damageDealt = base.Attack(player);
+        return damageDealt;
+    }
+}
+
+class Dragon : Monster
+{
+    public Dragon() : base(200, 30)
+    {
+    }
+
+    public override int Attack(Player player)
+    {
+        int damageDealt = base.Attack(player);
+        return damageDealt;
+    }
+}
+
+class Player
+{
+    public int HP { get; set; }
+    public int MaxHP { get; set; }
+    public List<string> Inventory { get; set; }
+    public int Level { get; set; }
+    public int Experience { get; set; }
+    public int ExperienceToNextLevel { get; set; }
+    public Sword EquippedSword { get; set; }
+    public Shield EquippedShield { get; set; }
+    public int X { get; set; }
+    public int Y { get; set; }
+
+    public Player()
+    {
+        HP = 100;
+        MaxHP = 100;
+        Inventory = new List<string>();
+        Level = 1;
+        Experience = 0;
+        ExperienceToNextLevel = 100;
+        X = 0;
+        Y = 0;
+    }
+
+    public int TakeDamage(int damage)
+    {
+        int actualDamage = Math.Max(0, damage);
+        HP -= actualDamage;
+        return actualDamage;
+    }
+
+    public bool IsAlive()
+    {
+        return HP > 0;
+    }
+
+    public void LevelUp()
+    {
+        Level++;
+        Experience -= ExperienceToNextLevel;
+        ExperienceToNextLevel = CalculateExperienceToNextLevel();
+        MaxHP += 10;
+
+        Console.WriteLine($"Congratulations! You reached level {Level}!");
+    }
+
+    private int CalculateExperienceToNextLevel()
+    {
+        return (int)(ExperienceToNextLevel * 1.5);
+    }
+
+    public void AddToInventory(string item)
+    {
+        Inventory.Add(item);
+        Console.WriteLine($"Added {item} to your inventory!");
+    }
+
+    public async Task RegenerateHP()
+    {
+        while (true)
+        {
+            await Task.Delay(5000); // Asynchronous delay every 5 seconds
+
+            if (HP < MaxHP)
+            {
+                HP = Math.Min(MaxHP, HP + (int)(MaxHP * 0.05));
+                Console.WriteLine($"Your HP regenerated to {HP}!");
+
+                if (HP < 100 && Inventory.Contains("HP Potion"))
+                {
+                    UsePotion();
+                }
+            }
+        }
+    }
+
+    private void UsePotion()
+    {
+        if (Inventory.Contains("HP Potion"))
+        {
+            Inventory.Remove("HP Potion");
+            HP = Math.Min(MaxHP, HP + 25);
+            Console.WriteLine($"You used an HP Potion and healed 25 HP. Your HP is now {HP}!");
+        }
+        else
+        {
+            Console.WriteLine("You don't have an HP Potion in your inventory.");
+        }
+    }
+
+    public int Attack(Monster monster)
+    {
+        int playerDamageDealt = EquippedSword != null ? EquippedSword.Damage : 5; // Default damage without a sword
+
+        // Add a level-dependent bonus to the player's damage
+        int levelBonus = Level * 5;
+
+        playerDamageDealt += levelBonus;
+
+        monster.HP -= playerDamageDealt;
+
+        Console.WriteLine($"You attack and deal {playerDamageDealt} damage to the monster!");
+
+        if (monster.HP <= 0)
+        {
+            Console.WriteLine($"You defeated the monster and gained experience!");
+            Experience += 10; // Add a fixed amount of experience points for defeating a monster
+
+            if (Experience >= ExperienceToNextLevel)
+            {
+                LevelUp();
+            }
+        }
+
+        return playerDamageDealt;
+    }
+
+    public void Defend()
+    {
+        // Implement player's defense logic if needed
     }
 }
 
@@ -48,61 +221,29 @@ class GameManager
 
 class TextAdventureGame
 {
-    static int playerX = 0;
-    static int playerY = 0;
-    static int playerHP = 100;
-    static int maxPlayerHP = 100;
-    static int potionHealAmount = 25; // Ilość punktów zdrowia przywracanych przez miksturę
-    static List<string> inventory = new List<string>(); // Ekwipunek gracza
-    static int playerLevel = 1;
-    static int experiencePoints = 0;
-    static int experienceToNextLevel = 100;
     static Player player = new Player();
-
-    class Player
-    {
-        public Weapon EquippedWeapon { get; set; }
-        public Shield EquippedShield { get; set; }
-    }
-
-    static void GetSword()
-    {
-        int swordDamage = GameManager.random.Next(5, 16);
-        Console.WriteLine($"The NPC gives you a sword! It deals {swordDamage} extra damage in battles.");
-
-        Weapon sword = new Weapon("Sword", swordDamage);
-        player.EquippedWeapon = sword;
-    }
-
-    static void GetShield()
-    {
-        int shieldDefense = GameManager.random.Next(5, 16);
-        Console.WriteLine($"The NPC gives you a shield! It absorbs {shieldDefense} damage in battles.");
-
-        Shield shield = new Shield("Shield", shieldDefense);
-        player.EquippedShield = shield;
-    }
+    static bool isGameOver = false;
 
     static async Task Main()
     {
         Console.WriteLine(Texts.WelcomeMessage);
 
-        // Rozpocznij wątek regeneracji HP w tle
-        Task regenerationTask = RegenerateHP();
+        // Start the HP regeneration loop in the background
+        Task regenerationTask = player.RegenerateHP();
 
-        while (true)
+        while (!isGameOver) // Use the game over flag as the loop condition
         {
-            Console.WriteLine($"You are at position ({playerX}, {playerY}).");
+            Console.WriteLine($"You are at position ({player.X}, {player.Y}).");
 
-            Console.WriteLine($"Your HP: {playerHP}");
-            Console.WriteLine($"Level: {playerLevel}");
-            Console.WriteLine($"Experience: {experiencePoints}/{experienceToNextLevel}");
-            Console.WriteLine($"Inventory: {string.Join(", ", inventory)}");
+            Console.WriteLine($"Your HP: {player.HP}");
+            Console.WriteLine($"Level: {player.Level}");
+            Console.WriteLine($"Experience: {player.Experience}/{player.ExperienceToNextLevel}");
+            Console.WriteLine($"Inventory: {string.Join(", ", player.Inventory)}");
 
             Console.WriteLine(Texts.MovePrompt);
 
             char userInput = Console.ReadKey().KeyChar;
-            Console.WriteLine(); // Przejdź do nowej linii po odczytaniu klawisza.
+            Console.WriteLine(); // Move to the next line after reading the key.
 
             HandleInput(userInput);
         }
@@ -113,13 +254,13 @@ class TextAdventureGame
         switch (input)
         {
             case '1':
-                Move(0, 1); // Idź na północ
+                Move(0, 1); // Move North
                 break;
             case '2':
-                Move(0, -1); // Idź na południe
+                Move(0, -1); // Move South
                 break;
             case '3':
-                Move(1, 0); // Idź na wschód
+                Move(1, 0); // Move East
                 break;
             default:
                 Console.WriteLine(Texts.InvalidInput);
@@ -130,15 +271,8 @@ class TextAdventureGame
         {
             Console.WriteLine(Texts.MonsterAppears);
 
-            if (FightMonster())
-            {
-                Console.WriteLine("You defeated the monster and gained experience!");
-            }
-            else
-            {
-                Console.WriteLine(Texts.DefeatedByMonster);
-                Environment.Exit(0);
-            }
+            Monster monster = CreateRandomMonster();
+            FightMonster(monster);
         }
 
         if (GameManager.random.Next(1, 11) == 1)
@@ -155,41 +289,46 @@ class TextAdventureGame
             }
         }
 
-        // 1 na 10 szans na znalezienie mikstury HP
+        // 1 in 10 chance to spawn an HP potion
         if (GameManager.random.Next(1, 11) == 1)
         {
             Console.WriteLine("You found an HP potion!");
-            AddToInventory("HP Potion");
+            player.AddToInventory("HP Potion");
         }
     }
 
-    static bool FightMonster()
+    static void Move(int deltaX, int deltaY)
     {
-        int monsterHP = GameManager.random.Next(50, 101);
-        int experiencePointsForDefeatingMonster = GameManager.random.Next(10, 21);
+        player.X += deltaX;
+        player.Y += deltaY;
 
-        Console.WriteLine(string.Format(Texts.MonsterAppears, monsterHP));
+        Console.WriteLine($"You moved to ({player.X}, {player.Y}).");
+    }
 
-        while (playerHP > 0 && monsterHP > 0)
+    static void FightMonster(Monster monster)
+    {
+        Console.WriteLine(string.Format(Texts.MonsterAppears, monster.HP));
+
+        while (player.IsAlive() && monster.HP > 0)
         {
-            Console.WriteLine(string.Format(Texts.AttackPrompt));
+            Console.WriteLine(Texts.AttackPrompt);
 
             char userInput = Console.ReadKey().KeyChar;
-            Console.WriteLine(); // Przejdź do nowej linii po odczytaniu klawisza.
+            Console.WriteLine(); // Move to the next line after reading the key.
 
             switch (userInput)
             {
                 case '1':
-                    Attack(ref monsterHP);
+                    int playerDamageDealt = player.Attack(monster);
                     break;
                 case '2':
-                    Defend();
+                    player.Defend(); // Implement defense logic
                     break;
                 case '3':
-                    if (playerHP < 20)
+                    if (player.HP < 20)
                     {
                         Console.WriteLine(Texts.RunAway);
-                        return false; // Gracz nie pokonał potwora
+                        return; // Player did not defeat the monster, but they can escape
                     }
                     else
                     {
@@ -201,131 +340,61 @@ class TextAdventureGame
                     break;
             }
 
-            if (monsterHP <= 0)
+            if (monster.HP > 0)
             {
-                Console.WriteLine($"You defeated the monster and gained {experiencePointsForDefeatingMonster} experience points!");
-                experiencePoints += experiencePointsForDefeatingMonster;
-
-                if (experiencePoints >= experienceToNextLevel)
-                {
-                    LevelUp();
-                }
-
-                return true;
+                int monsterDamageDealt = monster.Attack(player);
+                Console.WriteLine($"The monster attacks and deals {monsterDamageDealt} damage to you.");
             }
 
-            if (monsterHP > 0 && userInput != '3' && ShouldCounterAttack()) // Sprawdź kontratak
-            {
-                int monsterDamage = GameManager.random.Next(5, 16);
-                playerHP -= Math.Max(0, monsterDamage);
-                Console.WriteLine(string.Format(Texts.CounterattackMessage, Math.Max(0, monsterDamage)));
-            }
-
-            if (playerHP <= 0)
+            // Check player's HP after each round
+            if (!player.IsAlive())
             {
                 Console.WriteLine(Texts.DefeatedByMonster);
-                return false;
+                Console.WriteLine("Game Over! Your HP reached 0.");
+                isGameOver = true; // Set the game over flag
+                return; // Exit the fight loop
             }
         }
 
-        Console.WriteLine(Texts.DefeatedMonster);
-        return true;
-    }
-
-    static bool ShouldCounterAttack()
-    {
-        // Dostosuj szansę na kontratak według potrzeb (np. 30% szansy)
-        return GameManager.random.Next(1, 11) <= 3;
-    }
-
-
-    static void LevelUp()
-    {
-        playerLevel++;
-        experiencePoints -= experienceToNextLevel;
-        experienceToNextLevel = CalculateExperienceToNextLevel();
-        maxPlayerHP += 10;
-
-        Console.WriteLine($"Congratulations! You reached level {playerLevel}!");
-    }
-
-    static int CalculateExperienceToNextLevel()
-    {
-        return (int)(experienceToNextLevel * 1.5);
-    }
-
-    static void Attack(ref int monsterHP)
-    {
-        int damageDealt = GameManager.random.Next(5, 16);
-        int monsterDamage = Math.Min(monsterHP, GameManager.random.Next(1, 26));
-
-        monsterHP -= damageDealt;
-        playerHP -= Math.Max(0, monsterDamage);
-
-        Console.WriteLine($"You attack and deal {damageDealt} damage to the monster!");
-        Console.WriteLine($"The monster counterattacks and deals {Math.Max(0, monsterDamage)} damage!");
-    }
-
-    static void Defend()
-    {
-        int monsterDamage = GameManager.random.Next(1, 26);
-        int parryChance = GameManager.random.Next(1, 11);
-
-        if (parryChance <= 1)
+        if (!player.IsAlive())
         {
-            Console.WriteLine("You successfully parry the monster's attack!");
+            Console.WriteLine(Texts.DefeatedByMonster);
+            Console.WriteLine("Game Over! Your HP reached 0.");
+            isGameOver = true; // Set the game over flag
         }
         else
         {
-            playerHP -= Math.Max(0, monsterDamage / 2);
-            Console.WriteLine($"You defend and take only {Math.Max(0, monsterDamage / 2)} damage from the monster's attack.");
+            Console.WriteLine(Texts.DefeatedMonster);
         }
     }
 
-    static void AddToInventory(string item)
+    static Monster CreateRandomMonster()
     {
-        inventory.Add(item);
-        Console.WriteLine($"Added {item} to your inventory!");
-    }
-
-    static async Task RegenerateHP()
-    {
-        while (true)
+        if (GameManager.random.Next(1, 3) == 1)
         {
-            await Task.Delay(5000); // Asynchroniczne opóźnienie co 5 sekundy
-
-            if (playerHP < maxPlayerHP)
-            {
-                playerHP = Math.Min(maxPlayerHP, playerHP + (int)(maxPlayerHP * 0.05));
-                Console.WriteLine($"Your HP regenerated to {playerHP}!");
-
-                if (playerHP < 100 && inventory.Contains("HP Potion"))
-                {
-                    UsePotion();
-                }
-            }
-        }
-    }
-
-    static void Move(int deltaX, int deltaY)
-    {
-        playerX += deltaX;
-        playerY += deltaY;
-
-        Console.WriteLine($"You moved to ({playerX}, {playerY}).");
-    }
-
-    static void UsePotion()
-    {
-        if (inventory.Contains("HP Potion"))
-        {
-            inventory.Remove("HP Potion");
-            playerHP = Math.Min(maxPlayerHP, playerHP + potionHealAmount);
-            Console.WriteLine($"You used an HP Potion and healed {potionHealAmount} HP. Your HP is now {playerHP}!");
+            return new Goblin();
         }
         else
         {
-            Console.WriteLine("You don't have an HP Potion in your inventory.");
+            return new Dragon();
         }
+    }
+
+    static void GetSword()
+    {
+        int swordDamage = GameManager.random.Next(5, 16);
+        Console.WriteLine($"The NPC gives you a sword! It deals {swordDamage} extra damage in battles.");
+
+        Sword sword = new Sword("Sword", swordDamage);
+        player.EquippedSword = sword;
+    }
+
+    static void GetShield()
+    {
+        int shieldDefense = GameManager.random.Next(5, 16);
+        Console.WriteLine($"The NPC gives you a shield! It absorbs {shieldDefense} damage in battles.");
+
+        Shield shield = new Shield("Shield", shieldDefense);
+        player.EquippedShield = shield;
     }
 }
