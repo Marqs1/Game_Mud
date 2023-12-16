@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Numerics;
 using System.Threading.Tasks;
 
 class Texts
@@ -16,6 +17,30 @@ class Texts
     public static string DefeatedMonster = "You defeated the monster and gained experience!";
 }
 
+class Weapon
+{
+    public string Name { get; set; }
+    public int Damage { get; set; }
+
+    public Weapon(string name, int damage)
+    {
+        Name = name;
+        Damage = damage;
+    }
+}
+
+class Shield
+{
+    public string Name { get; set; }
+    public int Defense { get; set; }
+
+    public Shield(string name, int defense)
+    {
+        Name = name;
+        Defense = defense;
+    }
+}
+
 class GameManager
 {
     public static Random random = new Random();
@@ -27,17 +52,42 @@ class TextAdventureGame
     static int playerY = 0;
     static int playerHP = 100;
     static int maxPlayerHP = 100;
-    static int potionHealAmount = 25;
-    static List<string> inventory = new List<string>(); // Player's inventory
+    static int potionHealAmount = 25; // Ilość punktów zdrowia przywracanych przez miksturę
+    static List<string> inventory = new List<string>(); // Ekwipunek gracza
     static int playerLevel = 1;
     static int experiencePoints = 0;
     static int experienceToNextLevel = 100;
+    static Player player = new Player();
+
+    class Player
+    {
+        public Weapon EquippedWeapon { get; set; }
+        public Shield EquippedShield { get; set; }
+    }
+
+    static void GetSword()
+    {
+        int swordDamage = GameManager.random.Next(5, 16);
+        Console.WriteLine($"The NPC gives you a sword! It deals {swordDamage} extra damage in battles.");
+
+        Weapon sword = new Weapon("Sword", swordDamage);
+        player.EquippedWeapon = sword;
+    }
+
+    static void GetShield()
+    {
+        int shieldDefense = GameManager.random.Next(5, 16);
+        Console.WriteLine($"The NPC gives you a shield! It absorbs {shieldDefense} damage in battles.");
+
+        Shield shield = new Shield("Shield", shieldDefense);
+        player.EquippedShield = shield;
+    }
 
     static async Task Main()
     {
         Console.WriteLine(Texts.WelcomeMessage);
 
-        // Start the HP regeneration loop in the background
+        // Rozpocznij wątek regeneracji HP w tle
         Task regenerationTask = RegenerateHP();
 
         while (true)
@@ -52,7 +102,7 @@ class TextAdventureGame
             Console.WriteLine(Texts.MovePrompt);
 
             char userInput = Console.ReadKey().KeyChar;
-            Console.WriteLine(); // Move to the next line after reading the key.
+            Console.WriteLine(); // Przejdź do nowej linii po odczytaniu klawisza.
 
             HandleInput(userInput);
         }
@@ -63,13 +113,13 @@ class TextAdventureGame
         switch (input)
         {
             case '1':
-                Move(0, 1); // Move North
+                Move(0, 1); // Idź na północ
                 break;
             case '2':
-                Move(0, -1); // Move South
+                Move(0, -1); // Idź na południe
                 break;
             case '3':
-                Move(1, 0); // Move East
+                Move(1, 0); // Idź na wschód
                 break;
             default:
                 Console.WriteLine(Texts.InvalidInput);
@@ -105,7 +155,7 @@ class TextAdventureGame
             }
         }
 
-        // 1 in 10 chance to spawn an HP potion
+        // 1 na 10 szans na znalezienie mikstury HP
         if (GameManager.random.Next(1, 11) == 1)
         {
             Console.WriteLine("You found an HP potion!");
@@ -125,7 +175,7 @@ class TextAdventureGame
             Console.WriteLine(string.Format(Texts.AttackPrompt));
 
             char userInput = Console.ReadKey().KeyChar;
-            Console.WriteLine(); // Move to the next line after reading the key.
+            Console.WriteLine(); // Przejdź do nowej linii po odczytaniu klawisza.
 
             switch (userInput)
             {
@@ -139,7 +189,7 @@ class TextAdventureGame
                     if (playerHP < 20)
                     {
                         Console.WriteLine(Texts.RunAway);
-                        return false; // Player didn't defeat the monster
+                        return false; // Gracz nie pokonał potwora
                     }
                     else
                     {
@@ -164,7 +214,7 @@ class TextAdventureGame
                 return true;
             }
 
-            if (monsterHP > 0 && userInput != '3' && ShouldCounterAttack()) // Check for counterattack
+            if (monsterHP > 0 && userInput != '3' && ShouldCounterAttack()) // Sprawdź kontratak
             {
                 int monsterDamage = GameManager.random.Next(5, 16);
                 playerHP -= Math.Max(0, monsterDamage);
@@ -184,7 +234,7 @@ class TextAdventureGame
 
     static bool ShouldCounterAttack()
     {
-        // Adjust the counterattack chance as needed (e.g., 30% chance)
+        // Dostosuj szansę na kontratak według potrzeb (np. 30% szansy)
         return GameManager.random.Next(1, 11) <= 3;
     }
 
@@ -232,22 +282,6 @@ class TextAdventureGame
         }
     }
 
-    static void GetSword()
-    {
-        int swordDamage = GameManager.random.Next(5, 16);
-        Console.WriteLine($"The NPC gives you a sword! It deals {swordDamage} extra damage in battles.");
-
-        // Modify the player's damage based on the sword received
-    }
-
-    static void GetShield()
-    {
-        int shieldDefense = GameManager.random.Next(5, 16);
-        Console.WriteLine($"The NPC gives you a shield! It absorbs {shieldDefense} damage in battles.");
-
-        // Modify the player's defense based on the shield received
-    }
-
     static void AddToInventory(string item)
     {
         inventory.Add(item);
@@ -258,7 +292,7 @@ class TextAdventureGame
     {
         while (true)
         {
-            await Task.Delay(5000); // Asynchronous delay every 5 seconds
+            await Task.Delay(5000); // Asynchroniczne opóźnienie co 5 sekundy
 
             if (playerHP < maxPlayerHP)
             {
